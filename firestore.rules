@@ -6,7 +6,7 @@ service cloud.firestore {
       function isEditor() {
         return request.auth != null &&
           request.auth.uid in [
-            'REPLACE_WITH_FIRST_EDITOR_UID',
+            'Hm3JAW0PGtQIN78rMEAjzoGkb7w1',
             'REPLACE_WITH_SECOND_EDITOR_UID'
           ];
       }
