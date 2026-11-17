@@ -12,12 +12,17 @@
 .hero-memory img{display:block;width:100%;height:auto;max-width:100%;aspect-ratio:auto;object-fit:contain;image-rendering:auto;image-rendering:-webkit-optimize-contrast}
 .hero-memory figcaption{padding:13px 16px;background:rgba(9,35,36,.94);color:#f2dfc5;font:500 15px/1.45 'Fraunces',Georgia,serif}
 @media(max-width:760px){.hero-memory{max-width:520px;width:100%;justify-self:center}.hero-memory figcaption{font-size:14px}}
+.syncPanel{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#edf2eb;border:1px solid #d1dfd3;border-radius:15px;padding:14px 18px;margin:0 0 19px;color:var(--ink)}.syncSub{font-size:12px;line-height:1.55;color:var(--muted);margin-top:3px}.syncButtons{display:flex;flex-wrap:wrap;gap:8px}.controls :disabled{cursor:not-allowed;opacity:.5}.syncPanel [hidden]{display:none!important}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap"><div class="topnav"><div class="brand">Our Next Chapter <span style="color:#e5b66f">✳</span></div><div class="pill">Family progress • One milestone at a time</div></div><div class="hero"><div><div class="eyebrow">A fresh start · 2026 and beyond</div><h1>Building a little more freedom, together.</h1><p>Our goal isn't to do everything at once. It's to create stability, celebrate real progress, and make room for more memories along the way.</p></div><figure class="hero-memory"><img src="./images/family.jpg?v=2" alt="Four children sitting together on a log along a wooded hiking trail" width="400" height="300" fetchpriority="high"><figcaption>“Progress is not just money paid off. It's peace of mind we get to keep.”</figcaption></figure></div></div></header>
 <main class="main"><div class="summary"><div class="stat"><div class="eyebrow" style="color:#6c8879">Milestones celebrated</div><div class="num" id="completeCount">0 / 6</div><div class="sub">Each one is worth remembering.</div></div><div class="stat"><div class="eyebrow" style="color:#6c8879">Emergency savings</div><div class="num" id="emergencyStat">$0</div><div class="sub">Long-term goal: $10,000</div></div><div class="stat"><div class="eyebrow" style="color:#6c8879">Our guiding principle</div><div class="num" style="font-size:26px;margin-top:13px">Stability first.</div><div class="sub">No more borrowing for everyday life.</div></div></div>
-<div class="sectionHead"><div><div class="eyebrow" style="color:#9b7a52">The journey</div><h2>Our milestones & rewards</h2><p>Update dollar amounts and check off completed milestones. Your progress stays saved in this browser.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="smallbutton" id="editRewards">Customize rewards</button><button class="smallbutton" id="exportProgress">Export JSON</button><button class="smallbutton" id="importProgress">Import JSON</button><input id="importFile" type="file" accept="application/json,.json" hidden /></div></div>
+<div class="sectionHead"><div><div class="eyebrow" style="color:#9b7a52">The journey</div><h2>Our milestones & rewards</h2><p>Update dollar amounts and check off completed milestones. Progress saves in this browser until shared syncing is configured.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="smallbutton" id="editRewards">Customize rewards</button><button class="smallbutton" id="exportProgress">Export JSON</button><button class="smallbutton" id="importProgress">Import JSON</button><input id="importFile" type="file" accept="application/json,.json" hidden /></div></div>
+<div id="syncPanel" class="syncPanel" role="status" aria-live="polite">
+  <div><strong id="syncTitle">Local progress</strong><div class="syncSub" id="syncDetail">This browser saves progress privately. Cloud syncing has not been configured.</div><div class="syncSub" id="syncIdentity"></div></div>
+  <div class="syncButtons"><button class="smallbutton" id="signIn" hidden>Sign in to edit</button><button class="smallbutton" id="signOut" hidden>Sign out</button><button class="smallbutton" id="publishLocal" hidden>Import this browser's progress</button></div>
+</div>
 <div class="grid" id="goals"></div>
 <div class="note"><span>🌿</span><p><strong>A reminder worth keeping:</strong> Using emergency savings for a real emergency isn't going backward. It means the plan worked. Rebuilding is part of the journey.</p></div><div class="footer"><span>Built for a family choosing stability over financial whiplash.</span><button id="reset">Reset saved progress</button></div></main>
 <script>
@@ -29,21 +34,44 @@ const definitions=[
 {id:'reserve',emoji:'🛡️',tag:'Big protection',title:'Our $10,000 safety net',detail:'Build the emergency fund to $10,000 while keeping ordinary household expenses funded.',unit:'money',target:10000,reward:'A special family celebration—chosen together and saved for beforehand.'},
 {id:'debt',emoji:'✨',tag:'Next chapter',title:'First major debt eliminated',detail:'Completely pay off one targeted non-mortgage debt account without draining the emergency fund.',unit:'check',target:1,reward:'Celebrate with a family experience paid from planned fun money.'}
 ];
-const key='family-milestones-v1';let state={};try{state=JSON.parse(localStorage.getItem(key))||{}}catch(e){}
+const key='family-milestones-v1';
+let state={};try{state=JSON.parse(localStorage.getItem(key))||{}}catch(e){}
+let cloudMode=false, cloudCanEdit=false;
 const dollar=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const get=g=>({value:Math.max(0,Number(state[g.id]?.value)||0),done:!!state[g.id]?.done,reward:state[g.id]?.reward??g.reward});
-function save(){localStorage.setItem(key,JSON.stringify(state));render()}
-function update(id,changes){state[id]={...(state[id]||{}),...changes};save()}
+function save(){
+  if(!cloudMode)localStorage.setItem(key,JSON.stringify(state));
+  render();
+}
+function update(id,changes){
+  if(cloudMode&&!cloudCanEdit)return;
+  state[id]={...(state[id]||{}),...changes};save();
+  if(cloudMode){
+    const goal=definitions.find(x=>x.id===id);
+    if(goal)window.dispatchEvent(new CustomEvent('milestone-cloud-update',{detail:{id,progress:get(goal)}}));
+  }
+}
 function render(){
 let completed=0;const el=document.getElementById('goals');el.innerHTML=definitions.map(g=>{const s=get(g),p=g.unit==='check'?(s.done?100:0):Math.min(100,s.value/g.target*100),done=s.done||(g.unit!=='check'&&s.value>=g.target);if(done)completed++;return `<article class="goal ${done?'done':''}"><div class="goalhead"><div class="goalicon">${g.emoji}</div><div class="tag">${done?'✓ Milestone reached':g.tag}</div></div><h3>${g.title}</h3><p>${g.detail}</p>${g.unit==='check'?'':`<div class="numbers"><strong>${g.unit==='money'?dollar(s.value):s.value}</strong><span>/ ${g.unit==='money'?dollar(g.target):g.target+' months'}</span></div><div class="meter" role="progressbar" aria-valuenow="${s.value}" aria-valuemin="0" aria-valuemax="${g.target}" aria-label="${esc(g.title)}"><div style="width:${p}%"></div></div>`}<div class="reward"><span>🎉</span><div><b>THE CELEBRATION</b><span id="reward-${g.id}">${esc(s.reward)}</span></div></div><div class="controls">${g.unit==='check'?'':`<label for="input-${g.id}">Current ${g.unit==='money'?'amount':'months'}</label><input id="input-${g.id}" type="number" min="0" step="${g.unit==='money'?50:1}" value="${s.value}" aria-label="Current ${g.title}"/><button class="action" data-save="${g.id}">Update</button>`}<label class="check"><input type="checkbox" data-done="${g.id}" ${s.done?'checked':''}/> Mark complete</label></div></article>`}).join('');
 document.getElementById('completeCount').textContent=completed+' / '+definitions.length;document.getElementById('emergencyStat').textContent=dollar(get(definitions[4]).value);
 el.querySelectorAll('[data-save]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.save;const i=document.getElementById('input-'+id);if(i.value!==''&&Number.isFinite(Number(i.value)))update(id,{value:Math.max(0,Number(i.value))})}));
 el.querySelectorAll('input[type=number]').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const id=i.id.replace('input-','');update(id,{value:Math.max(0,Number(i.value)||0)})}}));
-el.querySelectorAll('[data-done]').forEach(i=>i.addEventListener('change',()=>update(i.dataset.done,{done:i.checked})))
+el.querySelectorAll('[data-done]').forEach(i=>i.addEventListener('change',()=>update(i.dataset.done,{done:i.checked})));
+if(cloudMode){
+  el.querySelectorAll('.controls input,.controls button').forEach(i=>{i.disabled=!cloudCanEdit});
+  document.getElementById('editRewards').disabled=!cloudCanEdit;
+  document.getElementById('importProgress').disabled=!cloudCanEdit;
+  document.getElementById('reset').hidden=true;
+} else {
+  document.getElementById('editRewards').disabled=false;
+  document.getElementById('importProgress').disabled=false;
+  document.getElementById('reset').hidden=false;
 }
-document.getElementById('reset').addEventListener('click',()=>{if(confirm('Reset all milestone progress and customized rewards in this browser?')){state={};save()}});
-document.getElementById('editRewards').addEventListener('click',()=>{const g=definitions.find(x=>x.id===prompt('Which milestone reward? Enter one of: stable, first, ahead, trip, reserve, debt'));if(!g)return;const v=prompt('Reward for '+g.title+':',get(g).reward);if(v!==null&&v.trim())update(g.id,{reward:v.trim()})});
+
+}
+document.getElementById('reset').addEventListener('click',()=>{if(cloudMode)return; if(confirm('Reset all milestone progress and customized rewards in this browser?')){state={};save()}});
+document.getElementById('editRewards').addEventListener('click',()=>{const g=definitions.find(x=>x.id===prompt('Which milestone reward? Enter one of: stable, first, ahead, trip, reserve, debt'));if(!g)return;const v=prompt('Reward for '+g.title+':',get(g).reward);if(v!==null&&v.trim())update(g.id,{reward:v.trim().slice(0,300)})});
 // GitHub Pages is read-only. Export and commit milestones.json to share a snapshot across browsers.
 const exportProgress=document.getElementById('exportProgress');
 const importProgress=document.getElementById('importProgress');
@@ -71,10 +99,27 @@ exportProgress.addEventListener('click',()=>{
 importProgress.addEventListener('click',()=>importFile.click());
 importFile.addEventListener('change',async()=>{
   const file=importFile.files?.[0];if(!file)return;
-  try{const next=validProgress(JSON.parse(await file.text()));if(confirm('Replace your locally saved milestones with this imported progress?')){state=next;save()}}
+  try{const next=validProgress(JSON.parse(await file.text()));if(confirm(cloudMode?'Publish the imported milestones to the shared cloud database?':'Replace your locally saved milestones with this imported progress?')){if(cloudMode){window.dispatchEvent(new CustomEvent('milestone-cloud-import',{detail:{goals:next}}))}else{state=next;save()}}}
   catch(err){alert('Could not import this file: '+err.message)}
   finally{importFile.value=''}
 });
+window.milestoneSync={
+  start(){cloudMode=true;cloudCanEdit=false;render()},
+  setEditor(enabled){cloudCanEdit=!!enabled;render()},
+  applyGoals(goals){
+    state={};
+    for(const goal of definitions){
+      const entry=goals?.[goal.id];
+      if(entry&&typeof entry==='object'){
+        state[goal.id]={value:Number.isFinite(Number(entry.value))?Math.max(0,Number(entry.value)):0,done:entry.done===true,reward:typeof entry.reward==='string'?entry.reward.slice(0,300):goal.reward};
+      }
+    }
+    render();
+  },
+  current(){return Object.fromEntries(definitions.map(g=>[g.id,get(g)]))},
+  local(){try{return JSON.parse(localStorage.getItem(key))||{}}catch{return {}}},
+  goals:definitions.map(x=>x.id)
+};
 render();
 // On a new browser, use the committed JSON snapshot as the initial state.
 if(!localStorage.getItem(key)){
@@ -83,4 +128,5 @@ if(!localStorage.getItem(key)){
   }).catch(()=>{});
 }
 </script>
+<script type="module" src="./firebase-sync.js"></script>
 </body></html>
