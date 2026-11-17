@@ -31,9 +31,9 @@ async function connect() {
     {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged},
     {getFirestore,collection,doc,onSnapshot,setDoc,writeBatch,serverTimestamp}
   ] = await Promise.all([
-    import('https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js'),
-    import('https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js'),
-    import('https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js')
+    import('https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js'),
+    import('https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js'),
+    import('https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js')
   ]);
   const app=initializeApp(firebaseConfig);
   const auth=getAuth(app), db=getFirestore(app), records=collection(db,'milestones');
