@@ -11,4 +11,4 @@ export const firebaseConfig = {
 
 // Add approved Firebase Authentication UIDs after first sign-in.
 // Edit permissions are also enforced separately in deployed firestore.rules.
-export const editorUids = [];
+export const editorUids = ['Hm3JAW0PGtQIN78rMEAjzoGkb7w1'];
