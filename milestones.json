@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-16T00:00:00.000Z",
+  "goals": {
+    "stable": {
+      "value": 0,
+      "done": false,
+      "reward": "A family movie night with favorite snacks, guilt-free."
+    },
+    "first": {
+      "value": 0,
+      "done": false,
+      "reward": "A special dinner at home or a low-cost family outing."
+    },
+    "ahead": {
+      "value": 0,
+      "done": false,
+      "reward": "A fully funded family day trip somewhere beautiful in Washington."
+    },
+    "trip": {
+      "value": 0,
+      "done": false,
+      "reward": "The trip itself! A campground, a cabin, or a new place to explore together."
+    },
+    "reserve": {
+      "value": 0,
+      "done": false,
+      "reward": "A special family celebration—chosen together and saved for beforehand."
+    },
+    "debt": {
+      "value": 0,
+      "done": false,
+      "reward": "Celebrate with a family experience paid from planned fun money."
+    }
+  }
+}
