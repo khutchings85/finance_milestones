@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /milestones/{milestoneId} {
+      allow read: if true;
+      function isEditor() {
+        return request.auth != null &&
+          request.auth.uid in [
+            'REPLACE_WITH_FIRST_EDITOR_UID',
+            'REPLACE_WITH_SECOND_EDITOR_UID'
+          ];
+      }
+      function validRecord() {
+        return milestoneId in ['stable', 'first', 'ahead', 'trip', 'reserve', 'debt']
+          && request.resource.data.keys().hasOnly(['value', 'done', 'reward', 'updatedAt', 'updatedBy'])
+          && request.resource.data.keys().hasAll(['value', 'done', 'reward', 'updatedAt', 'updatedBy'])
+          && request.resource.data.value is number
+          && request.resource.data.value >= 0
+          && request.resource.data.value <= 100000000
+          && request.resource.data.done is bool
+          && request.resource.data.reward is string
+          && request.resource.data.reward.size() <= 300
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid;
+      }
+      allow create, update: if isEditor() && validRecord();
+      allow delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
