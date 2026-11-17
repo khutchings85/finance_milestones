@@ -1,8 +1,14 @@
-// Paste your Firebase web app configuration below (Firebase Console → Project settings → Your apps).
-// These values are public project identifiers, NOT admin credentials.
-// Authorization is enforced by firestore.rules, not by hiding these values.
-export const firebaseConfig = null;
+// Firebase web app configuration (public identifiers, not admin credentials).
+// Firestore security rules enforce write access.
+export const firebaseConfig = {
+  apiKey: "AIzaSyDXI6Wn1RwZVqTIY6oLyA2xV0uAxWRP3jM",
+  authDomain: "finance-milestones.firebaseapp.com",
+  projectId: "finance-milestones",
+  storageBucket: "finance-milestones.firebasestorage.app",
+  messagingSenderId: "885202420797",
+  appId: "1:885202420797:web:b6edbb685b5d55ce129654"
+};
 
-// Add the Firebase Authentication UIDs of your approved editors here after their first Google sign-in.
-// Example: export const editorUids = ['abc123...', 'def456...'];
+// Add approved Firebase Authentication UIDs after first sign-in.
+// Edit permissions are also enforced separately in deployed firestore.rules.
 export const editorUids = [];
